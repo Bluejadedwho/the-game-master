@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nieve's Christmas Game</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="icon.png" />
+  <link rel="apple-touch-icon" href="icon.png" />
+  <style>
+    :root {
+      --gold: #ffd700;
+      --gold-dim: #b8860b;
+      --dark: #0f0f0f;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at center, #1a2a3a 0%, #000000 100%);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+    }
+
+    /* Sparkles */
+    body::before {
+      content: ""; position: fixed; inset: 0; 
+      background-image: radial-gradient(rgba(255,255,255,0.2) 1px, transparent 1px);
+      background-size: 40px 40px; opacity: 0.3; pointer-events: none;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      font-size: 36px;
+      background: linear-gradient(to right, #bf953f, #fcf6ba, #b38728);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
+      font-weight: 900; letter-spacing: 2px;
+    }
+
+    /* VIDEO CONTAINER */
+    .video-box {
+      width: 100%;
+      max-width: 700px;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 2px solid var(--gold-dim);
+      box-shadow: 0 0 50px rgba(0,0,0,0.5);
+      background: black;
+      margin-bottom: 30px;
+      position: relative; /* Needed for centering the play button */
+    }
+
+    video {
+      width: 100%;
+      display: block;
+      /* Ensure video covers the box */
+      object-fit: cover; 
+    }
+
+    /* CUSTOM PLAY BUTTON OVERLAY */
+    .custom-play-btn {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80px;
+      height: 80px;
+      background: rgba(255, 215, 0, 0.8); /* Gold background */
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+      transition: transform 0.2s, background 0.2s;
+      z-index: 10;
+    }
+
+    .custom-play-btn:hover {
+      transform: translate(-50%, -50%) scale(1.1);
+      background: rgba(255, 215, 0, 1);
+    }
+
+    /* Triangle Icon */
+    .custom-play-btn::after {
+      content: "";
+      display: block;
+      width: 0; 
+      height: 0; 
+      border-top: 15px solid transparent;
+      border-bottom: 15px solid transparent;
+      border-left: 26px solid black; /* Black triangle */
+      margin-left: 5px; /* Visual centering adjustment */
+    }
+
+    .btn {
+      background: linear-gradient(45deg, #2f6bff, #1f55db);
+      color: white;
+      border: none;
+      padding: 15px 50px;
+      font-size: 20px;
+      font-weight: 800;
+      border-radius: 50px;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 10px 30px rgba(47, 107, 255, 0.4);
+      transition: transform 0.2s;
+      /* Hidden by default */
+      display: none; 
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 10px 40px rgba(47, 107, 255, 0.6);
+    }
+
+    .note {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #888;
+      display: none; /* Hide note initially as video instructions are self-evident now */
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎁 Ready for your game, Nieve?</h1>
+
+  <div class="video-box" id="videoContainer">
+    <div class="custom-play-btn" id="playBtn"></div>
+    
+    <video id="introVideo" playsinline>
+      <source src="introvideo.mov" type="video/quicktime" />
+      <source src="introvideo.mp4" type="video/mp4" />
+      Your browser does not support the video tag.
+    </video>
+  </div>
+
+  <a href="round1.html" class="btn" id="startBtn">Start Game ➜</a>
+
+  <script>
+    const video = document.getElementById('introVideo');
+    const playBtn = document.getElementById('playBtn');
+    const startBtn = document.getElementById('startBtn');
+
+    // Handle Play Button Click
+    playBtn.addEventListener('click', () => {
+      video.play().then(() => {
+        playBtn.style.display = 'none'; // Hide button on successful play
+      }).catch(err => {
+        console.log("Play failed:", err);
+      });
+    });
+
+    // Also allow clicking the video itself to toggle play/pause (optional UX improvement)
+    video.addEventListener('click', () => {
+      if (video.paused) {
+        video.play();
+        playBtn.style.display = 'none';
+      } else {
+        video.pause();
+        // Optionally show button again on pause, but for this use case keeping it hidden is often cleaner
+        // playBtn.style.display = 'flex'; 
+      }
+    });
+
+    // Show Start Button when video ends
+    video.addEventListener('ended', () => {
+      startBtn.style.display = 'inline-block';
+      // Smooth scroll to button (helpful on mobile)
+      startBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  </script>
+
+</body>
+</html>

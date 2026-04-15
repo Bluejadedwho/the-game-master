@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nieve's Game · Round 1</title>
+  <style>
+    :root {
+      --gold: #ffd700;
+      --gold-dim: #b8860b;
+      --dark-bg: #0f0f0f;
+      --panel-bg: rgba(20, 20, 20, 0.95);
+      --border: 1px solid #444;
+      --glass-border: rgba(255, 255, 255, 0.15);
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at center, #1a2a3a 0%, #000000 100%);
+      color: white;
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding: 20px;
+    }
+
+    /* Sparkles */
+    body::before {
+      content: ""; position: fixed; inset: 0; 
+      background-image: radial-gradient(rgba(255,255,255,0.2) 1px, transparent 1px);
+      background-size: 40px 40px; opacity: 0.3; pointer-events: none;
+    }
+
+    .wrap { max-width: 1100px; margin: 0 auto; position: relative; z-index: 2; }
+
+    /* Header Bar */
+    .topbar {
+      background: var(--panel-bg);
+      border: 1px solid var(--gold-dim);
+      border-radius: 16px;
+      padding: 15px 25px;
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 20px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+    }
+    .title { font-weight: 900; font-size: 24px; color: var(--gold); text-transform: uppercase; letter-spacing: 1px; }
+    .stats { font-weight: 700; color: #ccc; font-size: 14px; }
+
+    /* The Grid Layout (Side by Side) */
+    .grid {
+      display: grid;
+      grid-template-columns: 1.3fr 0.7fr; /* Questions Left, Photo Right */
+      gap: 20px;
+    }
+
+    /* Panels */
+    .card {
+      background: var(--panel-bg);
+      border: var(--border);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      display: flex; flex-direction: column;
+    }
+
+    /* Round 2 Style Header Layout */
+    .cardHeader {
+        display: flex; justify-content: space-between; align-items: center;
+        border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px;
+    }
+    .cardHeader h2 { margin: 0; font-size: 16px; color: var(--gold); text-transform: uppercase; font-weight: 800; }
+    .cardHeader .sub { font-size: 12px; font-weight: 700; color: #ccc; }
+
+    .qText { font-size: 22px; font-weight: 700; margin-bottom: 15px; line-height: 1.4; color: #fff; min-height: 60px; }
+
+    /* Media Sizing */
+    video, img.clueImg, img.revealImg { 
+      width: 100%; max-height: 300px; object-fit: contain; 
+      border-radius: 12px; background: #000; border: 1px solid #333;
+      margin-bottom: 15px;
+    }
+    
+    /* Audio Player */
+    audio { width: 100%; margin-bottom: 15px; }
+
+    /* Inputs & Buttons */
+    .inputRow { display: flex; gap: 8px; margin-bottom: 10px; }
+    
+    input[type="text"] {
+      flex: 1; padding: 12px; border-radius: 12px; border: 2px solid #444;
+      background: #333; color: white; font-size: 16px; outline: none; transition: border 0.2s;
+    }
+    input[type="text"]:focus { border-color: var(--gold); }
+
+    .btn {
+      border: none; border-radius: 12px; padding: 0 20px; font-weight: 800; cursor: pointer;
+      font-size: 14px; transition: transform 0.1s; height: 46px;
+    }
+    /* Round 2 Style YELLOW Button */
+    .btnPrimary { background: var(--gold); color: black; box-shadow: 0 4px 10px rgba(255, 215, 0, 0.2); }
+    .btnPrimary:hover { background: #ffea00; }
+    
+    .btnGhost { background: transparent; border: 1px solid #666; color: #ccc; }
+    .btn:active { transform: scale(0.95); }
+
+    /* Feedback Messages */
+    .msg { margin-top: 5px; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 700; display: none; text-align: center; }
+    .msg.visible { display: block; animation: slideUp 0.3s; }
+    .msg.good { background: rgba(46, 204, 113, 0.15); color: #2ecc71; border: 1px solid #2ecc71; }
+    .msg.warn { background: rgba(231, 76, 60, 0.15); color: #e74c3c; border: 1px solid #e74c3c; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Red Alert Box (Matching Round 2) */
+    .photoAlert {
+      background: rgba(231, 76, 60, 0.9); border: 2px solid #c0392b; padding: 15px; border-radius: 15px;
+      margin-top: 15px; display: none; text-align: center; font-weight: 800; color: white;
+      animation: pulse 2s infinite;
+      box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+    }
+    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(0.98); } 100% { transform: scale(1); } }
+
+    /* Answer Reveal Box */
+    .answerBlock { 
+      margin-top: 15px; padding: 15px; border-radius: 15px; 
+      background: rgba(255, 215, 0, 0.05); border: 1px solid var(--gold-dim); 
+      display: none; 
+    }
+
+    /* --- UPDATED PHOTO TILES (MATCHING ROUND 2) --- */
+    .photoPanel { 
+      width: 100%; position: relative; border-radius: 18px; overflow: hidden; 
+      border: 4px solid var(--gold-dim); aspect-ratio: 3 / 4; background: #000; 
+      box-shadow: 0 0 30px rgba(0,0,0,0.5); 
+    }
+    .tiles { 
+      position: absolute; inset: 0; display: grid; 
+      grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(5, 1fr); 
+      gap: 2px; background: rgba(0,0,0,0.5); padding: 2px; 
+    }
+    .tile { 
+      background: linear-gradient(135deg, #2c3e50, #4ca1af); 
+      border-radius: 2px; 
+      transition: all 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55); 
+      border: 1px solid rgba(255,255,255,0.1); 
+    }
+    .tile.revealed { opacity: 0; transform: scale(0) rotate(180deg); pointer-events: none; }
+    /* ----------------------------------------------- */
+
+    /* Win Section */
+    .endRow { margin-top: 20px; display: none; flex-direction: column; gap: 10px; }
+  </style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="title">Round 1 🔒</div>
+    <div class="stats" id="statsText">Solved: 0/6</div>
+  </div>
+
+  <div class="grid">
+    
+    <div class="card">
+      <div class="cardHeader">
+        <h2 id="qLabel">QUESTION 1</h2>
+      </div>
+      
+      <div class="qText" id="qText"></div>
+
+      <div id="clueRow" style="display:none;">
+        <audio id="clueAudioPlayer" controls style="display:none;"></audio>
+        <img id="clueImage" class="clueImg" style="display:none;" />
+        <video id="clueVideo" playsinline style="display:none;"></video>
+      </div>
+
+      <div class="inputRow" id="stdInputRow">
+        <input id="answerInput" type="text" placeholder="Type answer here..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+        <button class="btn btnPrimary" id="submitBtn">Submit</button>
+        <button class="btn btnGhost" id="hintBtn">Hint</button>
+        <button class="btn btnGhost" id="skipBtn">Skip</button>
+      </div>
+
+      <div class="msg" id="msgBox"></div>
+
+      <div id="finalPhotoAlert" class="photoAlert">
+        ⚠️ ROUND INCOMPLETE!<br>You solved all questions, but you must guess the PHOTO to finish!
+      </div>
+
+      <div class="answerBlock" id="answerBlock">
+        <div style="font-weight:800; color:var(--gold); margin-bottom:10px;">ANSWER: <span id="answerText" style="color:white;"></span></div>
+        
+        <audio id="revealAudio" style="display:none;"></audio>
+        <video id="revealVideo" playsinline style="display:none;"></video>
+        <img id="revealImage" class="revealImg" style="display:none;" />
+        
+        <div style="display:flex; justify-content:flex-end;">
+          <button class="btn btnPrimary" id="continueBtn">Continue ➜</button>
+        </div>
+      </div>
+
+      <div class="endRow" id="endRow">
+        <div style="text-align:center; padding:20px; background:white; color:black; border-radius:15px;">
+          <h3 style="margin-top:0;">Round 1 Complete! 🎉</h3>
+          <video id="celebrateVideo" playsinline style="width:100%; border-radius:10px; border:2px solid black; margin-bottom:10px;"></video>
+          <button class="btn btnPrimary" id="nextStepBtn" style="width:100%; display:none;">Next Round ➜</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cardHeader">
+        <h2>PHOTO 🔎</h2>
+        <div class="sub">Tiles Unlocked: <span id="tileCount">0</span>/6</div>
+      </div>
+      
+      <div style="font-size:14px; color:#ccc; margin-bottom:10px; line-height:1.4;">
+        Where are you in this photo?
+      </div>
+      
+      <div class="inputRow">
+        <input id="photoGuess" type="text" placeholder="Type answer here..." />
+        <button class="btn btnPrimary" id="photoSubmit">Submit</button>
+        <button class="btn btnGhost" id="photoHint">Hint</button>
+      </div>
+      
+      <div class="msg" id="photoMsg"></div>
+
+      <div class="photoPanel">
+        <img src="photo1.jpeg" style="position:absolute; width:100%; height:100%; object-fit:cover;" />
+        <div class="tiles" id="tiles"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  // --- CONFIG ROUND 1 ---
+  const questions = [
+    { 
+      text: "When you were 3, what word did you say a lot? Hint: It starts with the letter 'A'", 
+      keywords: ["actually"], 
+      display: "Actually"
+    },
+    { 
+      text: "What did you used to think the giant said in Jack and the Beanstock?", 
+      keywords: ["smell", "beast", "pie"], 
+      display: "Fee Fie Fo Fum, I smell a beast in the pie!"
+    },
+    { 
+      text: "What did you used to call my slippers when you were little?", 
+      keywords: ["slipps"], 
+      display: "Slipps"
+    }, 
+    { 
+      text: "During wrestling, we used to yell out the bizarre phrase: 'Capacorna Feeda!' What did I say originally, that led you to thinking it was that?", 
+      keywords: ["capricorn", "fury"], 
+      display: "Capricorn of Fury"
+    },
+    { 
+      text: "What song is this? And when did we listen to it the most?", 
+      keywords: ["good", "morning", "freedom", "day", "blue", "mink"], 
+      display: "Good Morning Freedom", 
+      clueAudio: "clue.mp3" 
+    },
+    { 
+      text: "What is the line in this song, that we knew we were saying incorrectly, however we never have wanted to, and never have looked up the correct lyric?", 
+      keywords: ["gotta", "get", "away", "home", "bushy", "man", "butchy"], 
+      display: "Gotta get away from the 'Bushyman’s' home", 
+      revealAudio: "answer.mp3" 
+    } 
+  ];
+
+  // --- SOUNDS ---
+  const successSound = new Audio('correct.wav');
+  const errorSound = new Audio('incorrect.wav');
+  const iceSound = new Audio('icecrack.mp3'); 
+  const hintSound = new Audio('hint.wav');
+
+  const state = { 
+    idx: 0, 
+    hints: Array(6).fill(0), 
+    solved: Array(6).fill(false), 
+    photoSolved: false, 
+    tiles: 0, 
+    order: Array.from({length:25}, (_,i)=>i).sort(()=>Math.random()-0.5)
+  };
+
+  function norm(s){ return (s||"").toLowerCase().replace(/[^a-z0-9]/g,"").trim(); }
+
+  function findNextUnsolved(startIdx){
+    for(let i=1; i<=6; i++){
+      let next = (startIdx + i) % 6;
+      if(!state.solved[next]) return next;
+    }
+    return -1;
+  }
+
+  // --- RENDER ---
+  function render(){
+    // Check if Questions Solved
+    if(state.solved.every(x=>x)){
+       document.getElementById("qText").textContent = "All Questions Solved! ✅";
+       document.getElementById("qLabel").textContent = "ROUND COMPLETE";
+       document.getElementById("stdInputRow").style.display = "none";
+       document.getElementById("clueRow").style.display = "none";
+       
+       // NEW: Show Red Alert if Photo NOT solved
+       if(!state.photoSolved) {
+         document.getElementById("finalPhotoAlert").style.display = "block";
+       } else {
+         document.getElementById("finalPhotoAlert").style.display = "none";
+       }
+       return;
+    }
+
+    const q = questions[state.idx];
+    document.getElementById("qLabel").textContent = "QUESTION " + (state.idx + 1);
+    document.getElementById("qText").textContent = q.text;
+    
+    document.getElementById("answerInput").value = "";
+    document.getElementById("msgBox").className = "msg";
+    document.getElementById("answerBlock").style.display = "none";
+    document.getElementById("finalPhotoAlert").style.display = "none";
+    
+    // RESET MEDIA
+    const ca = document.getElementById("clueAudioPlayer");
+    ca.pause(); 
+    ca.style.display = "none";
+    document.getElementById("clueRow").style.display = "none";
+
+    // AUTO-PLAY CLUE
+    if(q.clueAudio){
+       document.getElementById("clueRow").style.display = "block";
+       ca.src = q.clueAudio;
+       ca.style.display = "block"; 
+       ca.play().catch(e=>{});
+    }
+    
+    document.getElementById("statsText").textContent = `Solved: ${state.solved.filter(x=>x).length}/6`;
+  }
+
+  function setMsg(txt, type){
+    const m = document.getElementById("msgBox");
+    m.textContent = txt;
+    m.className = `msg visible ${type}`;
+  }
+
+  // --- SUBMIT ---
+  document.getElementById("submitBtn").onclick = () => {
+    const q = questions[state.idx];
+    const val = norm(document.getElementById("answerInput").value);
+    
+    if(q.keywords.some(k => val.includes(norm(k)))){
+      handleCorrect();
+    } else {
+      setMsg("Incorrect. Try again! ❄️", "warn");
+      try { errorSound.play(); } catch(e){}
+    }
+  };
+
+  function handleCorrect(){
+    const q = questions[state.idx];
+    setMsg("Correct! ✅", "good");
+    try { successSound.play(); } catch(e){}
+    
+    if(!state.solved[state.idx]){ 
+      state.solved[state.idx] = true; 
+      state.tiles++; 
+      updateTiles(); 
+    }
+    
+    document.getElementById("statsText").textContent = `Solved: ${state.solved.filter(x=>x).length}/6`;
+    showReveal(q, true);
+  }
+
+  function showReveal(q, solved){
+    document.getElementById("answerBlock").style.display = "block";
+    document.getElementById("answerText").textContent = q.display;
+    document.getElementById("continueBtn").style.display = solved ? "block" : "none";
+    
+    // Stop Clue Audio
+    document.getElementById("clueAudioPlayer").pause();
+
+    const rv = document.getElementById("revealVideo"); 
+    const ri = document.getElementById("revealImage");
+    const ra = document.getElementById("revealAudio");
+
+    rv.style.display = "none"; ri.style.display = "none"; ra.style.display = "none";
+
+    // AUTO-PLAY REVEAL
+    if(q.revealVideo){ 
+      rv.style.display = "block"; 
+      rv.src = q.revealVideo; 
+      rv.play().catch(e=>{}); 
+      
+      // Wait for video to end before showing button
+      if(solved) {
+        document.getElementById("continueBtn").style.display = "none";
+        rv.onended = () => { document.getElementById("continueBtn").style.display = "block"; };
+      }
+    } 
+    else if(q.revealImage){
+      ri.style.display = "block"; 
+      ri.src = q.revealImage;
+    } 
+    else if(q.revealAudio){
+      ra.src = q.revealAudio; 
+      ra.play().catch(e=>{});
+    }
+  }
+
+  // --- HINTS ---
+  document.getElementById("hintBtn").onclick = () => {
+    try { hintSound.play(); } catch(e){}
+    const q = questions[state.idx]; 
+    state.hints[state.idx]++;
+    const h = state.hints[state.idx];
+
+    // Q1 Custom
+    if(state.idx === 0) {
+        if(h === 1) setMsg("Hint 1: Starts with 'A'", "warn");
+        else if(h === 2) setMsg("Hint 2: Actu", "warn");
+        else showReveal(q, false);
+        return;
+    }
+    // Q2 Custom
+    if(state.idx === 1) {
+        if(h === 1) setMsg("Hint 1: Starts with 'F'", "warn");
+        else if(h === 2) setMsg("Hint 2: Fee Fie Fo Fum, I smell...", "warn");
+        else showReveal(q, false);
+        return;
+    }
+    // Q3 Custom
+    if(state.idx === 2) {
+        if(h === 1) setMsg("Hint 1: Starts with 'S'", "warn");
+        else if(h === 2) setMsg("Hint 2: Sli", "warn");
+        else showReveal(q, false);
+        return;
+    }
+    // Q5 Custom
+    if(state.idx === 4) {
+        if(h === 1) setMsg("Hint 1: Starts with 'G'", "warn");
+        else if(h === 2) setMsg("Hint 2: Good morning...", "warn");
+        else showReveal(q, false);
+        return;
+    }
+    // Q6 Custom
+    if(state.idx === 5) {
+        if(h === 1) setMsg("Hint 1: Starts with 'G'", "warn");
+        else if(h === 2) setMsg("Hint 2: Gotta get away from...", "warn");
+        else showReveal(q, false);
+        return;
+    }
+
+    if(h===1) setMsg(`Hint 1: Starts with "${q.display[0]}"`, "warn");
+    else if(h===2) setMsg(`Hint 2: First word is "${q.display.split(" ")[0]}"`, "warn");
+    else showReveal(q, false);
+  };
+
+  // --- NAV ---
+  document.getElementById("skipBtn").onclick = () => {
+    document.getElementById("answerInput").value = ""; 
+    let next = findNextUnsolved(state.idx);
+    if(next !== -1) { state.idx = next; render(); }
+  };
+
+  document.getElementById("continueBtn").onclick = () => { 
+    // Stop all media
+    document.getElementById("revealAudio").pause();
+    document.getElementById("revealVideo").pause();
+    document.getElementById("clueAudioPlayer").pause();
+    
+    // Check if Questions Done + Photo NOT Done
+    if(state.solved.every(x=>x) && !state.photoSolved){
+      // UPDATED: Show the RED ALERT DIV instead of browser alert
+      document.getElementById("finalPhotoAlert").style.display = "block";
+      render();
+    } else {
+      let next = findNextUnsolved(state.idx);
+      if(next !== -1) { state.idx = next; render(); }
+      else render(); 
+    }
+    checkWin(); 
+  };
+
+  // --- PHOTO ---
+  function updateTiles(){
+    const count = state.photoSolved ? 25 : Math.min(state.tiles, 6);
+    document.getElementById("tileCount").textContent = count > 6 ? 6 : count; 
+    
+    const ts = document.querySelectorAll(".tile");
+    ts.forEach(t => t.classList.remove("revealed"));
+    for(let i=0; i<count; i++) if(ts[state.order[i]]) ts[state.order[i]].classList.add("revealed");
+    if(count > 0 && count < 25) try{ iceSound.play(); } catch(e){}
+  }
+
+  let photoHintCount = 0;
+  document.getElementById("photoHint").onclick = () => {
+    try { hintSound.play(); } catch(e){}
+    photoHintCount++;
+    if(photoHintCount === 1) setMsg("Hint 1: C", "warn");
+    else if (photoHintCount === 2) setMsg("Hint 2: Ch", "warn");
+    else setMsg("Hint 3: Chuck", "warn");
+    document.getElementById("photoMsg").textContent = document.getElementById("msgBox").textContent;
+  };
+
+  document.getElementById("photoSubmit").onclick = () => {
+    const g = norm(document.getElementById("photoGuess").value);
+    const pKeys = ["chuck", "cheese", "entertainment"];
+    
+    if(pKeys.some(k => g.includes(k))){
+      state.photoSolved = true; 
+      updateTiles();
+      try{ successSound.play(); } catch(e){}
+      document.getElementById("photoMsg").textContent = "Correct! ✅";
+      checkWin();
+    } else { 
+      document.getElementById("photoMsg").textContent = "Try again!";
+      try{ errorSound.play(); } catch(e){}
+    }
+  };
+
+  // --- WIN ---
+  function checkWin(){
+    if(state.solved.every(x=>x) && state.photoSolved) {
+      document.getElementById("endRow").style.display = "flex";
+      document.getElementById("finalPhotoAlert").style.display = "none";
+      
+      const v = document.getElementById("celebrateVideo");
+      // FIXED: Reload video to ensure it's ready to play even if order was swapped
+      v.src = "greatjob.mov";
+      v.load(); 
+      v.play().catch(e=>{ console.log("Auto-play blocked", e); });
+
+      v.onended = () => {
+         document.getElementById("nextStepBtn").style.display = "block";
+      };
+      
+      setTimeout(() => {
+          document.getElementById("endRow").scrollIntoView({behavior:"smooth"});
+      }, 500);
+
+      document.getElementById("nextStepBtn").onclick = () => {
+          window.location.href = "round2.html";
+      };
+    }
+  }
+
+  const tilesEl = document.getElementById("tiles");
+  for(let i=0; i<25; i++) tilesEl.appendChild(document.createElement("div")).className = "tile";
+  render(); updateTiles();
+})();
+</script>
+</body>
+</html>
